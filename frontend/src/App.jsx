@@ -1,121 +1,83 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
 import './App.css'
 
+const tracks = [
+  { id: 1, title: 'Morning Drive', artist: 'Artist A', duration: '3:45' },
+  { id: 2, title: 'Late Night', artist: 'Artist B', duration: '4:12' },
+  { id: 3, title: 'Sunset Vibes', artist: 'Artist C', duration: '2:58' },
+  { id: 4, title: 'City Lights', artist: 'Artist D', duration: '5:01' },
+]
+
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app-root">
+      <header className="app-header">
+        <div className="logo">Sound<span>Cloud</span></div>
+        <div className="search">
+          <input placeholder="Search tracks, artists, or playlists" />
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+        <div className="user">Sign in</div>
+      </header>
 
-      <div className="ticks"></div>
+      <div className="layout">
+        <aside className="sidebar">
+          <nav>
+            <ul>
+              <li className="active">Home</li>
+              <li>Discover</li>
+              <li>Stream</li>
+              <li>Library</li>
+              <li>Playlists</li>
+            </ul>
+          </nav>
+        </aside>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
+        <main className="main">
+          <section className="hero">
+            <h1>Listen to your favorite tracks</h1>
+            <p>Explore. Play. Share.</p>
+          </section>
+
+          <section className="tracks">
+            <h2 className="section-title">Tracks</h2>
+            {tracks.map((t) => (
+              <article className="track-card" key={t.id}>
+                <div className="play-btn">▶</div>
+                <div className="art" />
+                <div className="meta">
+                  <div className="title">{t.title}</div>
+                  <div className="artist">{t.artist}</div>
+                </div>
+                <div className="track-wave" />
+                <div className="duration">{t.duration}</div>
+              </article>
+            ))}
+          </section>
+        </main>
+
+        <aside className="rightbar">
+          <h3>Up Next</h3>
           <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
+            <li>Track 5 — Artist E</li>
+            <li>Track 6 — Artist F</li>
+            <li>Track 7 — Artist G</li>
           </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        </aside>
+      </div>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <div className="player-bar">
+        <div className="controls">
+          <button>◀</button>
+          <button>▶</button>
+          <button>Play</button>
+        </div>
+        <div className="now">
+          <div className="now-title">No track playing</div>
+          <div className="progress">
+            <div className="bar" />
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
