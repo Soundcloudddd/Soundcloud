@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'users',
     'tracks',
     'playlists',
+    "comments",
 ]
 
 MIDDLEWARE = [
