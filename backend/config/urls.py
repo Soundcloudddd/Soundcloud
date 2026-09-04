@@ -7,6 +7,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
 
     path("api/", include("tracks.urls")),
+    path("api/", include("playlists.urls")),
 ]
 
 if settings.DEBUG:
