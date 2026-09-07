@@ -340,6 +340,7 @@ function App() {
     audio.currentTime = Math.min(durationState, audio.currentTime + 5)
   }
 
+function App() {
   return (
     <div className="app-root">
       <header className="app-header">
