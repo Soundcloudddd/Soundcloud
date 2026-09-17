@@ -1,5 +1,4 @@
 import { useState } from "react";
-import Home from "./Home";
 import {
   Link,
   Route,
@@ -393,7 +392,7 @@ function LoginPassword() {
         const data = await response.json();
         localStorage.setItem("access", data.access);
         localStorage.setItem("refresh", data.refresh);
-        navigate("/home");
+        navigate("/account");
       } else {
         setError("The password you entered is incorrect");
       }
@@ -644,7 +643,6 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
       <Route path="/account" element={<Account />} />
-      <Route path="/home" element={<Home />} />
     </Routes>
   );
 }
