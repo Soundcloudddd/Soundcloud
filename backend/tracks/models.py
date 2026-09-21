@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from .validators import validate_audio_file
 from mutagen import File
@@ -53,3 +54,16 @@ class Track(models.Model):
 
     def __str__(self):
         return f"{self.artist} - {self.title}"
+
+
+class TrackLike(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    track = models.ForeignKey(Track, on_delete=models.CASCADE, related_name='track_likes')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'track')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user} likes {self.track}"

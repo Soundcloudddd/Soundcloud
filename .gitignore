@@ -41,4 +41,4 @@ Thumbs.db
 # ==========================
 # Logs
 # ==========================
-*.log
+*.logbackend/config/local_settings.py
