@@ -200,9 +200,13 @@
 }
 
 .app-header .logo {
+  padding: 0;
+  border: 0;
+  background: transparent;
   font-weight: 700;
   font-size: 20px;
   color: var(--text-h);
+  cursor: pointer;
 }
 
 .app-header .logo span { color: #ff7700; }
@@ -239,6 +243,33 @@
 
 .playlists-section {
   padding: 20px;
+}
+
+.library-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.library-tabs button {
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.library-tabs button.active {
+  border-bottom-color: #ff7700;
+  color: #ff7700;
+}
+
+.library-recent-list {
+  display: grid;
+  gap: 8px;
 }
 
 .section-header {
@@ -934,6 +965,174 @@ h1::before, h2::before, .tracks::before {
 
 /* Tighter spacing like SoundCloud */
 .layout { gap: 16px; padding: 16px; }
+
+/* Discover and Stream */
+.discovery-page,
+.stream-page {
+  display: grid;
+  gap: 32px;
+  padding-bottom: 28px;
+}
+
+.page-intro {
+  padding: 28px;
+  border: 1px solid rgba(255, 119, 0, 0.25);
+  border-radius: 16px;
+  background: radial-gradient(circle at top right, rgba(255, 119, 0, 0.22), transparent 46%), rgba(255, 255, 255, 0.02);
+}
+
+.page-intro h1 {
+  margin: 4px 0 8px;
+  color: var(--text-h);
+  font-size: clamp(28px, 4vw, 42px);
+}
+
+.page-intro p:not(.eyebrow),
+.section-heading p {
+  margin: 0;
+  color: var(--text);
+}
+
+.eyebrow {
+  margin: 0;
+  color: #ff9d45;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.discovery-section {
+  display: grid;
+  gap: 14px;
+}
+
+.section-heading h2 {
+  margin: 0 0 4px;
+  color: var(--text-h);
+  font-size: 22px;
+}
+
+.track-shelf {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.shelf-track {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+  transition: border-color 0.2s, transform 0.2s, background 0.2s;
+}
+
+.shelf-track:hover,
+.shelf-track.playing {
+  border-color: rgba(255, 119, 0, 0.7);
+  background: rgba(255, 119, 0, 0.07);
+  transform: translateY(-2px);
+}
+
+.shelf-cover {
+  position: relative;
+  grid-column: 1 / -1;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ff7700, #ff9933);
+  color: #fff;
+  cursor: pointer;
+}
+
+.shelf-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shelf-cover > span:first-child {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  font-size: 42px;
+}
+
+.shelf-play {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 50%;
+  background: #ff7700;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.38);
+}
+
+.shelf-meta {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.shelf-meta strong,
+.shelf-meta span,
+.shelf-meta small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shelf-meta strong { color: var(--text-h); }
+.shelf-meta span,
+.shelf-meta small { color: var(--text); font-size: 13px; }
+.shelf-meta small { color: #ffad67; }
+
+.shelf-like {
+  align-self: end;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.shelf-like:hover,
+.shelf-like.liked { color: #ff7700; }
+
+.genre-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.genre-list button {
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 119, 0, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 119, 0, 0.08);
+  color: #ffb56d;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.genre-list button:hover {
+  background: #ff7700;
+  color: #fff;
+}
+
+@media (max-width: 560px) {
+  .page-intro { padding: 20px; }
+  .track-shelf { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 /* Playlist View */
 .add-track-btn {

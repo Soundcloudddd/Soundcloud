@@ -46,15 +46,6 @@ function SocialButtons() {
         Continue with Google
       </button>
 
-      <button disabled>
-        <span>f</span>
-        Continue with Facebook
-      </button>
-
-      <button disabled>
-        <span></span>
-        Continue with Apple
-      </button>
     </div>
   );
 }

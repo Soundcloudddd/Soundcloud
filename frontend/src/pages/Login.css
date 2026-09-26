@@ -69,12 +69,6 @@
   color: #222;
 }
 
-.sonik-social.apple {
-  border: 1px solid black;
-  background: black;
-  color: white;
-}
-
 .sonik-divider {
   display: flex;
   align-items: center;

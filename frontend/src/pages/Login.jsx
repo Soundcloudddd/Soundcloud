@@ -145,15 +145,6 @@ export default function Login() {
               Continue with Google
             </button>
 
-            <button
-              className="sonik-social apple"
-              type="button"
-              disabled
-              title="Coming soon"
-            >
-              Continue with Apple
-            </button>
-
             <div className="sonik-divider">
               <span>or</span>
             </div>
