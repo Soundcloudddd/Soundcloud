@@ -1,4 +1,6 @@
 import { useState } from "react";
+import ProfilePage from "./pages/Profile";
+import EditProfile from "./pages/EditProfile";
 import Home from "./Home";
 import {
   Link,
@@ -251,11 +253,25 @@ function Profile() {
 function Agreement() {
   const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState("");
+
   const navigate = useNavigate();
 
   async function createAccount() {
-    const email = sessionStorage.getItem("signupEmail") || "";
+    if (!accepted) {
+      setError("You must accept the User Agreement");
+      return;
+    }
+
+    const email = (sessionStorage.getItem("signupEmail") || "").trim();
     const password = sessionStorage.getItem("signupPassword") || "";
+    const name = sessionStorage.getItem("profileName") || "";
+
+    if (!email || !password) {
+      setError("Your signup session expired. Please start again.");
+      return;
+    }
+
+    setError("");
 
     try {
       const response = await fetch(`${API}/api/auth/register/`, {
@@ -271,13 +287,36 @@ function Agreement() {
         })
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        navigate("/login");
+        localStorage.setItem("access", data.access);
+        localStorage.setItem("refresh", data.refresh);
+
+        sessionStorage.setItem("profileName", name);
+        sessionStorage.setItem("signupEmail", email);
+
+        sessionStorage.removeItem("signupPassword");
+
+        navigate("/home");
         return;
       }
 
-      const data = await response.json();
-      setError(JSON.stringify(data));
+      if (data.email) {
+        setError("This email is already registered. Please log in.");
+      } else if (data.username) {
+        setError("This username is already taken.");
+      } else if (data.password) {
+        setError(Array.isArray(data.password) ? data.password[0] : data.password);
+      } else if (data.password_confirm) {
+        setError(
+          Array.isArray(data.password_confirm)
+            ? data.password_confirm[0]
+            : data.password_confirm
+        );
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
     } catch {
       setError("Backend is not running.");
     }
@@ -287,7 +326,7 @@ function Agreement() {
     <Page progress="User agreement">
       <BackButton />
 
-      <h1>You must accept the User Agreement</h1>
+      <h1>Confirm your agreement</h1>
 
       <div className="agreement">
         By using Sonik you agree to follow our Community Guidelines,
@@ -300,12 +339,15 @@ function Agreement() {
         <input
           type="checkbox"
           checked={accepted}
-          onChange={(e) => setAccepted(e.target.checked)}
+          onChange={(e) => {
+            setAccepted(e.target.checked);
+            setError("");
+          }}
         />
         <span>I agree to the Sonik User Agreement</span>
       </label>
 
-      {error && <div className="error-text">{error}</div>}
+      {error && <div className="error-text">ⓘ {error}</div>}
 
       <button
         className="yellow-button"
@@ -630,6 +672,17 @@ function Account() {
   );
 }
 
+function HomeWithProfile() {
+  return (
+    <div className="home-wrapper">
+      <Home />
+      <Link className="home-profile-button" to="/profile">
+        Profile
+      </Link>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <Routes>
@@ -644,7 +697,9 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
       <Route path="/account" element={<Account />} />
-      <Route path="/home" element={<Home />} />
+      <Route path="/home" element={<HomeWithProfile />} />
+          <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/profile/edit" element={<EditProfile />} />
     </Routes>
   );
 }
