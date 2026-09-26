@@ -1395,10 +1395,16 @@ function Profile() {
 function Agreement() {
   const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState("");
+
   const navigate = useNavigate();
 
   async function createAccount() {
-    const email = sessionStorage.getItem("signupEmail") || "";
+    if (!accepted) {
+      setError("You must accept the User Agreement");
+      return;
+    }
+
+    const email = (sessionStorage.getItem("signupEmail") || "").trim();
     const password = sessionStorage.getItem("signupPassword") || "";
     const displayName = sessionStorage.getItem("profileName") || "";
     const gender = sessionStorage.getItem("profileGender") || "";
@@ -1431,6 +1437,8 @@ function Agreement() {
         })
       });
 
+      const data = await response.json();
+
       if (response.ok) {
         const data = await response.json()
         sessionStorage.removeItem("signupEmail")
@@ -1455,7 +1463,7 @@ function Agreement() {
     <Page progress="User agreement">
       <BackButton />
 
-      <h1>You must accept the User Agreement</h1>
+      <h1>Confirm your agreement</h1>
 
       <div className="agreement">
         By using Sonik you agree to follow our Community Guidelines,
@@ -1468,12 +1476,15 @@ function Agreement() {
         <input
           type="checkbox"
           checked={accepted}
-          onChange={(e) => setAccepted(e.target.checked)}
+          onChange={(e) => {
+            setAccepted(e.target.checked);
+            setError("");
+          }}
         />
         <span>I agree to the Sonik User Agreement</span>
       </label>
 
-      {error && <div className="error-text">{error}</div>}
+      {error && <div className="error-text">ⓘ {error}</div>}
 
       <button
         className="yellow-button"
@@ -1798,6 +1809,21 @@ function Account() {
   );
 }
 
+function HomeWithProfile() {
+  return (
+    <>
+      <div className="home-wrapper">
+        <Home />
+        <Link className="home-profile-button" to="/profile">
+          Profile
+        </Link>
+      </div>
+
+      <SuggestedUsers />
+    </>
+  );
+}
+
 export default function App() {
   return (
     <Routes>
@@ -1812,7 +1838,9 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
       <Route path="/account" element={<Account />} />
-      <Route path="/home" element={<Home />} />
+      <Route path="/home" element={<HomeWithProfile />} />
+          <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/profile/edit" element={<EditProfile />} />
     </Routes>
   );
 }
