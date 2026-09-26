@@ -76,6 +76,17 @@ a {
   color: rgba(255,255,255,0.72);
 }
 
+select.field {
+  appearance: auto;
+  background-color: #062d63;
+  color: #fff;
+}
+
+select.field option {
+  background-color: #fff;
+  color: #111;
+}
+
 .field-error {
   border-color: #ff334f;
 }
@@ -113,6 +124,11 @@ a {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.google-signin-button {
+  min-height: 40px;
+  width: 100%;
 }
 
 .social-buttons button {

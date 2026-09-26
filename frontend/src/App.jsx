@@ -1,11 +1,70 @@
 import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
+import { Link, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import './App.css'
 
 axios.defaults.withCredentials = true
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000/api'
+axios.interceptors.request.use((config) => {
+  const accessToken = localStorage.getItem('sonik_access_token') ?? localStorage.getItem('access')
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`
+  }
+  return config
+})
 
-function App() {
+const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000/api'
+const API = API_BASE.replace(/\/api\/?$/, '')
+
+function getErrorMessage(data) {
+  if (data?.detail) return data.detail
+  if (data?.non_field_errors) return data.non_field_errors.join(' ')
+
+  const messages = Object.values(data ?? {}).flat()
+  return messages.join(' ') || 'Не вдалося виконати запит. Спробуйте ще раз.'
+}
+
+function TrackShelf({ tracks, currentTrack, playing, onPlay, onLike, emptyMessage }) {
+  if (tracks.length === 0) {
+    return <div className="empty-state">{emptyMessage}</div>
+  }
+
+  return (
+    <div className="track-shelf">
+      {tracks.map((track) => {
+        const isPlaying = currentTrack?.id === track.id && playing
+
+        return (
+          <article className={`shelf-track ${isPlaying ? 'playing' : ''}`} key={track.id}>
+            <button
+              className="shelf-cover"
+              type="button"
+              onClick={() => onPlay(track)}
+              aria-label={`${isPlaying ? 'Пауза' : 'Відтворити'} ${track.title}`}
+            >
+              {track.cover_image ? <img src={track.cover_image} alt="" /> : <span>🎵</span>}
+              <span className="shelf-play">{isPlaying ? '❚❚' : '▶'}</span>
+            </button>
+            <div className="shelf-meta">
+              <strong title={track.title}>{track.title}</strong>
+              <span title={track.artist}>{track.artist}</span>
+              {track.genre && <small>{track.genre}</small>}
+            </div>
+            <button
+              className={`shelf-like ${track.liked ? 'liked' : ''}`}
+              type="button"
+              onClick={() => onLike(track)}
+              aria-label={`${track.liked ? 'Прибрати вподобання' : 'Вподобати'} ${track.title}`}
+            >
+              ♥ <span>{track.likes ?? 0}</span>
+            </button>
+          </article>
+        )
+      })}
+    </div>
+  )
+}
+
+function Home() {
   const [tracks, setTracks] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
@@ -28,7 +87,9 @@ function App() {
   const [durationState, setDurationState] = useState(0)
   const [volume, setVolume] = useState(1)
   const [activeTab, setActiveTab] = useState('home')
+  const [libraryTab, setLibraryTab] = useState('recent')
   const [recentlyPlayed, setRecentlyPlayed] = useState([])
+  const [recommendations, setRecommendations] = useState([])
   const [playlists, setPlaylists] = useState([])
   const [playlistFormVisible, setPlaylistFormVisible] = useState(false)
   const [playlistForm, setPlaylistForm] = useState({
@@ -44,6 +105,7 @@ function App() {
 
   useEffect(() => {
     fetchTracks()
+    fetchRecommendations()
   }, [])
 
   useEffect(() => {
@@ -61,7 +123,11 @@ function App() {
         setPlaying(false)
       }
     }
-    const handleLoadedMetadata = () => setDurationState(audio.duration || 0)
+    const handleLoadedMetadata = () => {
+      const duration = Number.isFinite(audio.duration) ? audio.duration : 0
+      setDurationState(duration)
+      setElapsed(0)
+    }
 
     audio.addEventListener('timeupdate', handleTimeUpdate)
     audio.addEventListener('ended', handleEnded)
@@ -80,8 +146,12 @@ function App() {
       return
     }
 
-    audio.src = currentTrack.audio_file
-    audio.load()
+    // Do not reload the audio element during a normal React re-render: loading it
+    // again resets `currentTime` to zero.
+    if (audio.src !== new URL(currentTrack.audio_file, window.location.href).href) {
+      audio.src = currentTrack.audio_file
+      audio.load()
+    }
     if (playing) {
       audio.play().catch(() => setPlaying(false))
     }
@@ -107,6 +177,15 @@ function App() {
       setStatusMessage('Не вдалося завантажити треки. Перевір API.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchRecommendations = async () => {
+    try {
+      const { data } = await axios.get(`${API_BASE}/tracks/recommendations/`)
+      setRecommendations(data)
+    } catch {
+      setRecommendations([])
     }
   }
 
@@ -183,7 +262,7 @@ function App() {
   }
 
   useEffect(() => {
-    if (activeTab === 'playlists') {
+    if (activeTab === 'playlists' || activeTab === 'library') {
       fetchPlaylists()
     }
   }, [activeTab])
@@ -250,6 +329,8 @@ function App() {
 
   const setTrackAsCurrent = (track) => {
     setCurrentTrack(track)
+    setElapsed(0)
+    setProgress(0)
     setRecentlyPlayed((previousTracks) => [
       track,
       ...previousTracks.filter((item) => item.id !== track.id),
@@ -261,14 +342,6 @@ function App() {
       return
     }
     setPlaying((prev) => !prev)
-  }
-
-  const handleSkipBack = () => {
-    if (!currentTrack || tracks.length === 0) return
-    const index = tracks.findIndex((track) => track.id === currentTrack.id)
-    const prev = tracks[index - 1] || tracks[tracks.length - 1]
-    setTrackAsCurrent(prev)
-    setPlaying(true)
   }
 
   const getNextTrack = async () => {
@@ -289,17 +362,6 @@ function App() {
     }
   }
 
-  const handleSkipForward = async () => {
-    if (!currentTrack || tracks.length === 0) return
-    const nextTrack = await getNextTrack()
-    if (nextTrack) {
-      setTrackAsCurrent(nextTrack)
-      setPlaying(true)
-    } else {
-      setPlaying(false)
-    }
-  }
-
   const handleLikeTrack = async (track) => {
     try {
       const { data } = await axios.post(`${API_BASE}/tracks/${track.id}/like/`)
@@ -307,6 +369,7 @@ function App() {
       if (currentTrack?.id === track.id) {
         setCurrentTrack(data)
       }
+      fetchRecommendations()
     } catch (error) {
       setStatusMessage('Не вдалося поставити лайк.')
     }
@@ -328,6 +391,44 @@ function App() {
     audioRef.current.volume = newVolume
   }
 
+  const getPreviousTrack = async () => {
+    if (!currentTrack) {
+      return null
+    }
+
+    try {
+      const params = {
+        current_id: currentTrack.id,
+        shuffle: shuffleMode ? 'true' : 'false',
+        loop: loopMode ? 'true' : 'false',
+      }
+      const { data } = await axios.get(`${API_BASE}/tracks/previous-track/`, { params })
+      return data
+    } catch (error) {
+      return null
+    }
+  }
+
+  const handlePreviousTrack = async () => {
+    if (!currentTrack) return
+    const previousTrack = await getPreviousTrack()
+    if (previousTrack) {
+      setTrackAsCurrent(previousTrack)
+      setPlaying(true)
+    }
+  }
+
+  const handleNextTrack = async () => {
+    if (!currentTrack || tracks.length === 0) return
+    const nextTrack = await getNextTrack()
+    if (nextTrack) {
+      setTrackAsCurrent(nextTrack)
+      setPlaying(true)
+    } else {
+      setPlaying(false)
+    }
+  }
+
   const handleSkipBackward5 = () => {
     if (!currentTrack) return
     const audio = audioRef.current
@@ -340,11 +441,28 @@ function App() {
     audio.currentTime = Math.min(durationState, audio.currentTime + 5)
   }
 
-function Page({ children, progress }) {
+  const popularTracks = [...tracks]
+    .sort((first, second) => (second.likes ?? 0) - (first.likes ?? 0))
+    .slice(0, 6)
+  const newTracks = [...tracks]
+    .sort((first, second) => new Date(second.created_at ?? 0) - new Date(first.created_at ?? 0))
+    .slice(0, 6)
+  const genres = [...new Set(tracks.map((track) => track.genre?.trim()).filter(Boolean))].slice(0, 8)
+  const streamTracks = [...recentlyPlayed, ...newTracks.filter(
+    (track) => !recentlyPlayed.some((played) => played.id === track.id),
+  )].slice(0, 8)
+
   return (
     <div className="app-root">
       <header className="app-header">
-        <div className="logo">Sound<span>Cloud</span></div>
+        <button
+          className="logo"
+          type="button"
+          onClick={() => setActiveTab('home')}
+          aria-label="Go to home page"
+        >
+          Sound<span>Cloud</span>
+        </button>
         <form className="search" onSubmit={handleSearch}>
           <input
             value={search}
@@ -363,11 +481,10 @@ function Page({ children, progress }) {
         <aside className="sidebar">
           <nav>
             <ul>
-              <li className={activeTab === 'home' ? 'active' : ''} onClick={() => setActiveTab('home')}>Home</li>
               <li className={activeTab === 'discover' ? 'active' : ''} onClick={() => setActiveTab('discover')}>Discover</li>
               <li className={activeTab === 'stream' ? 'active' : ''} onClick={() => setActiveTab('stream')}>Stream</li>
-              <li className={activeTab === 'library' ? 'active' : ''} onClick={() => setActiveTab('library')}>Library</li>
-              <li className={activeTab === 'playlists' ? 'active' : ''} onClick={() => setActiveTab('playlists')}>Playlists</li>
+              <li className={activeTab === 'library' ? 'active' : ''} onClick={() => { setActiveTab('library'); setLibraryTab('recent') }}>Library</li>
+              <li className={activeTab === 'playlists' ? 'active' : ''} onClick={() => { setActiveTab('playlists'); setLibraryTab('playlists') }}>Playlists</li>
             </ul>
           </nav>
         </aside>
@@ -458,7 +575,6 @@ function Page({ children, progress }) {
                         className={`like-btn ${track.liked ? 'liked' : ''}`}
                         type="button"
                         onClick={() => handleLikeTrack(track)}
-                        disabled={track.liked}
                       >
                         ♥ {track.likes ?? 0}
                       </button>
@@ -472,9 +588,183 @@ function Page({ children, progress }) {
             </>
           )}
 
-          {activeTab === 'playlists' && (
+          {activeTab === 'discover' && (
+            <section className="discovery-page">
+              <div className="page-intro">
+                <p className="eyebrow">DISCOVER</p>
+                <h1>Знайдіть свій наступний улюблений трек</h1>
+                <p>Добірки створені з популярних, нових і близьких вам за жанром композицій.</p>
+              </div>
+
+              <section className="discovery-section">
+                <div className="section-heading">
+                  <div>
+                    <h2>Рекомендовано для вас</h2>
+                    <p>На основі жанрів треків, які ви вподобали.</p>
+                  </div>
+                </div>
+                <TrackShelf
+                  tracks={recommendations}
+                  currentTrack={currentTrack}
+                  playing={playing}
+                  onPlay={handlePlayTrack}
+                  onLike={handleLikeTrack}
+                  emptyMessage="Вподобайте кілька треків, і тут з’являться персональні рекомендації."
+                />
+              </section>
+
+              <section className="discovery-section">
+                <div className="section-heading">
+                  <div>
+                    <h2>Популярне зараз</h2>
+                    <p>Треки, які найчастіше вподобають слухачі.</p>
+                  </div>
+                </div>
+                <TrackShelf
+                  tracks={popularTracks}
+                  currentTrack={currentTrack}
+                  playing={playing}
+                  onPlay={handlePlayTrack}
+                  onLike={handleLikeTrack}
+                  emptyMessage="Щойно тут з’являться треки — ви побачите найпопулярніші."
+                />
+              </section>
+
+              <section className="discovery-section">
+                <div className="section-heading">
+                  <div>
+                    <h2>Нові релізи</h2>
+                    <p>Нещодавно додані композиції.</p>
+                  </div>
+                </div>
+                <TrackShelf
+                  tracks={newTracks}
+                  currentTrack={currentTrack}
+                  playing={playing}
+                  onPlay={handlePlayTrack}
+                  onLike={handleLikeTrack}
+                  emptyMessage="Нових треків поки немає."
+                />
+              </section>
+
+              <section className="discovery-section">
+                <div className="section-heading">
+                  <div>
+                    <h2>Жанри</h2>
+                    <p>Швидкий перехід до музики за настроєм.</p>
+                  </div>
+                </div>
+                {genres.length === 0 ? (
+                  <div className="empty-state">Додайте жанри до треків, щоб відкривати музику за категоріями.</div>
+                ) : (
+                  <div className="genre-list">
+                    {genres.map((genre) => (
+                      <button key={genre} type="button" onClick={() => { setSearch(genre); fetchTracks(genre); setActiveTab('home') }}>
+                        {genre}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </section>
+          )}
+
+          {activeTab === 'stream' && (
+            <section className="stream-page">
+              <div className="page-intro">
+                <p className="eyebrow">YOUR STREAM</p>
+                <h1>Ваша музична стрічка</h1>
+                <p>Повертайтеся до прослуханого та відкривайте свіжі треки.</p>
+              </div>
+
+              <section className="discovery-section">
+                <div className="section-heading">
+                  <div>
+                    <h2>Продовжити слухати</h2>
+                    <p>Ваші останні відтворені треки.</p>
+                  </div>
+                </div>
+                <TrackShelf
+                  tracks={recentlyPlayed}
+                  currentTrack={currentTrack}
+                  playing={playing}
+                  onPlay={handlePlayTrack}
+                  onLike={handleLikeTrack}
+                  emptyMessage="Відтворіть будь-який трек, щоб він з’явився у вашій стрічці."
+                />
+              </section>
+
+              <section className="discovery-section">
+                <div className="section-heading">
+                  <div>
+                    <h2>Свіже у стрічці</h2>
+                    <p>Нові композиції та ваша недавня музика в одному місці.</p>
+                  </div>
+                </div>
+                <TrackShelf
+                  tracks={streamTracks}
+                  currentTrack={currentTrack}
+                  playing={playing}
+                  onPlay={handlePlayTrack}
+                  onLike={handleLikeTrack}
+                  emptyMessage="Стрічка з’явиться, коли буде доступна музика."
+                />
+              </section>
+            </section>
+          )}
+
+          {(activeTab === 'playlists' || activeTab === 'library') && (
             <>
               <section className="playlists-section">
+                <div className="library-tabs" role="tablist" aria-label="Library sections">
+                  <button
+                    className={libraryTab === 'recent' ? 'active' : ''}
+                    type="button"
+                    role="tab"
+                    aria-selected={libraryTab === 'recent'}
+                    onClick={() => setLibraryTab('recent')}
+                  >
+                    Останні зіграні пісні
+                  </button>
+                  <button
+                    className={libraryTab === 'playlists' ? 'active' : ''}
+                    type="button"
+                    role="tab"
+                    aria-selected={libraryTab === 'playlists'}
+                    onClick={() => setLibraryTab('playlists')}
+                  >
+                    Усі плейлисти
+                  </button>
+                </div>
+
+                {libraryTab === 'recent' ? (
+                  <div className="library-recent-list">
+                    {recentlyPlayed.length === 0 ? (
+                      <div className="empty-state">Ще немає зіграних пісень.</div>
+                    ) : (
+                      recentlyPlayed.map((track) => (
+                        <button
+                          className="recently-played-item"
+                          key={track.id}
+                          type="button"
+                          onClick={() => handlePlayTrack(track)}
+                        >
+                          {track.cover_image ? (
+                            <img src={track.cover_image} alt="" />
+                          ) : (
+                            <span className="recently-played-cover">🎵</span>
+                          )}
+                          <span className="recently-played-meta">
+                            <strong>{track.title}</strong>
+                            <small>{track.artist}</small>
+                          </span>
+                          <span className="recently-played-control">▶</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                ) : (
+                  <>
                 <div className="section-header">
                   <h2 className="section-title">Плейлисти</h2>
                   <button 
@@ -581,6 +871,8 @@ function Page({ children, progress }) {
                         ))}
                       </div>
                     )}
+                  </>
+                )}
                   </>
                 )}
               </section>
@@ -692,20 +984,41 @@ function Page({ children, progress }) {
             )}
           </section>
 
-          <h3>Up Next</h3>
-          <ul>
-            <li>Track 5 — Artist E</li>
-            <li>Track 6 — Artist F</li>
-            <li>Track 7 — Artist G</li>
-          </ul>
+          <section className="recommendations-section">
+            <h3>Recommended for You</h3>
+            {recommendations.length === 0 ? (
+              <div className="empty-state">
+                Like tracks to get recommendations by genre.
+              </div>
+            ) : (
+              recommendations.map((track) => (
+                <div className="liked-track-item" key={track.id}>
+                  <div className="liked-track-info">
+                    <div className="liked-track-title">{track.title}</div>
+                    <div className="liked-track-artist">
+                      {track.artist}{track.genre ? ` · ${track.genre}` : ''}
+                    </div>
+                  </div>
+                  <button
+                    className="liked-play-btn"
+                    type="button"
+                    onClick={() => handlePlayTrack(track)}
+                    aria-label={`Play ${track.title}`}
+                  >
+                    ▶
+                  </button>
+                </div>
+              ))
+            )}
+          </section>
         </aside>
       </div>
 
       <div className="player-bar">
         <div className="controls">
-          <button type="button" onClick={handleSkipBack}>◀</button>
+          <button type="button" onClick={handlePreviousTrack} disabled={!currentTrack} title="Попередня пісня">⏮</button>
           <button type="button" onClick={handleTogglePlay}>{playing ? '❚❚' : '▶'}</button>
-          <button type="button" onClick={handleSkipForward}>▶</button>
+          <button type="button" onClick={handleNextTrack} disabled={!currentTrack} title="Наступна пісня">⏭</button>
           <button
             type="button"
             className={`toggle-btn ${shuffleMode ? 'active' : ''}`}
@@ -739,23 +1052,33 @@ function Page({ children, progress }) {
             {currentTrack ? `${currentTrack.artist} — ${currentTrack.title}` : 'No track playing'}
           </div>
           <div className="progress-container">
-            <div className="progress">
-              <div className="bar" style={{ width: `${progress}%` }} />
-            </div>
             <div className="skip-buttons">
-              <button type="button" className="skip-btn" onClick={handleSkipBackward5} title="Назад на 5 сек">⏪ -5s</button>
-              <button type="button" className="skip-btn" onClick={handleSkipForward5} title="Вперед на 5 сек">+5s ⏩</button>
+              <button type="button" className="skip-btn" onClick={handleSkipBackward5} title="Назад на 5 секунд">⏪ −5 с</button>
+              <button type="button" className="skip-btn" onClick={handleSkipForward5} title="Вперед на 5 секунд">+5 с ⏩</button>
             </div>
           </div>
           <div className="time-labels">
             <span>{formatTime(elapsed)}</span>
             <span>{formatTime(durationState)}</span>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Page({ children, progress }) {
+  return (
+    <div className="page">
+      <div className="auth">{children}</div>
+      {progress && (
+        <div className="progress-wrap">
+          <div className="progress-line"><div className="progress-fill" /></div>
           <div className="progress-text">{progress}</div>
         </div>
       )}
     </div>
-  );
+  )
 }
 
 function BackButton() {
@@ -768,29 +1091,88 @@ function BackButton() {
   );
 }
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
+
+function GoogleSignInButton() {
+  const buttonRef = useRef(null)
+  const navigate = useNavigate()
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) {
+      setError('Google sign-in is not configured.')
+      return undefined
+    }
+
+    const renderButton = () => {
+      if (!buttonRef.current || !window.google) return
+
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async ({ credential }) => {
+          setError('')
+          try {
+            const response = await fetch(`${API}/api/auth/google/`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ credential }),
+            })
+            const data = await response.json()
+            if (!response.ok) throw new Error(getErrorMessage(data))
+
+            localStorage.setItem('sonik_access_token', data.access)
+            localStorage.setItem('sonik_refresh_token', data.refresh)
+            localStorage.setItem('access', data.access)
+            localStorage.setItem('refresh', data.refresh)
+            navigate('/account')
+          } catch (requestError) {
+            setError(requestError.message)
+          }
+        },
+      })
+      buttonRef.current.replaceChildren()
+      window.google.accounts.id.renderButton(buttonRef.current, {
+        theme: 'outline',
+        size: 'large',
+        text: 'continue_with',
+        shape: 'pill',
+        width: Math.floor(buttonRef.current.getBoundingClientRect().width),
+      })
+    }
+
+    let script = document.getElementById('google-identity-services')
+    if (script) {
+      renderButton()
+      return undefined
+    }
+
+    script = document.createElement('script')
+    script.id = 'google-identity-services'
+    script.src = 'https://accounts.google.com/gsi/client'
+    script.async = true
+    script.onload = renderButton
+    document.head.appendChild(script)
+    return undefined
+  }, [navigate])
+
+  return (
+    <>
+      <div className="google-signin-button" ref={buttonRef} />
+      {error && <div className="error-text">{error}</div>}
+    </>
+  )
+}
+
 function SocialButtons() {
   return (
     <div className="social-buttons">
-      <button disabled>
-        <span>G</span>
-        Continue with Google
-      </button>
-
-      <button disabled>
-        <span>f</span>
-        Continue with Facebook
-      </button>
-
-      <button disabled>
-        <span></span>
-        Continue with Apple
-      </button>
+      <GoogleSignInButton />
     </div>
   );
 }
 
 function Signup() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => sessionStorage.getItem("signupEmail") || "");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
@@ -810,6 +1192,7 @@ function Signup() {
 
       <input
         className={`field ${error ? "field-error" : ""}`}
+        type="email"
         placeholder="Email"
         value={email}
         onChange={(e) => {
@@ -837,8 +1220,9 @@ function Signup() {
 }
 
 function SignupPassword() {
-  const [password, setPassword] = useState("");
+  const [password, setPassword] = useState(() => sessionStorage.getItem("signupPassword") || "");
   const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const valid =
@@ -848,7 +1232,14 @@ function SignupPassword() {
     /\d/.test(password);
 
   function continueNext() {
-    if (!valid || password !== confirm) return;
+    if (!valid) {
+      setError("Пароль не відповідає всім вимогам.")
+      return
+    }
+    if (password !== confirm) {
+      setError("Паролі не збігаються.")
+      return
+    }
 
     sessionStorage.setItem("signupPassword", password);
     navigate("/signup/profile");
@@ -865,7 +1256,10 @@ function SignupPassword() {
         type="password"
         placeholder="Password"
         value={password}
-        onChange={(e) => setPassword(e.target.value)}
+        onChange={(e) => {
+          setPassword(e.target.value)
+          setError("")
+        }}
       />
 
       <div className="requirements-title">
@@ -884,12 +1278,16 @@ function SignupPassword() {
         type="password"
         placeholder="Confirm password"
         value={confirm}
-        onChange={(e) => setConfirm(e.target.value)}
+        onChange={(e) => {
+          setConfirm(e.target.value)
+          setError("")
+        }}
       />
+
+      {error && <div className="error-text">{error}</div>}
 
       <button
         className="yellow-button"
-        disabled={!valid || password !== confirm}
         onClick={continueNext}
       >
         Continue
@@ -899,17 +1297,23 @@ function SignupPassword() {
 }
 
 function Profile() {
-  const [name, setName] = useState("");
+  const [name, setName] = useState(() => sessionStorage.getItem("profileName") || "");
   const [month, setMonth] = useState("");
   const [day, setDay] = useState("");
   const [year, setYear] = useState("");
   const [gender, setGender] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   function continueNext() {
-    if (!name || !month || !day || !year || !gender) return;
+    if (!name.trim() || !month || !day || !year || !gender) {
+      setError("Заповніть усі поля профілю.")
+      return
+    }
 
-    sessionStorage.setItem("profileName", name);
+    sessionStorage.setItem("profileName", name.trim());
+    sessionStorage.setItem("profileGender", gender);
+    sessionStorage.setItem("profileBirthDate", `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`);
     navigate("/signup/agreement");
   }
 
@@ -923,7 +1327,10 @@ function Profile() {
         className="field"
         placeholder="Name"
         value={name}
-        onChange={(e) => setName(e.target.value)}
+        onChange={(e) => {
+          setName(e.target.value)
+          setError("")
+        }}
       />
 
       <div className="description">
@@ -962,13 +1369,18 @@ function Profile() {
       <select
         className="field"
         value={gender}
-        onChange={(e) => setGender(e.target.value)}
+        onChange={(e) => {
+          setGender(e.target.value)
+          setError("")
+        }}
       >
         <option value="">Gender</option>
         <option>Male</option>
         <option>Female</option>
         <option>Prefer not to say</option>
       </select>
+
+      {error && <div className="error-text">{error}</div>}
 
       <button className="yellow-button" onClick={continueNext}>
         Continue
@@ -985,7 +1397,16 @@ function Agreement() {
   async function createAccount() {
     const email = sessionStorage.getItem("signupEmail") || "";
     const password = sessionStorage.getItem("signupPassword") || "";
+    const displayName = sessionStorage.getItem("profileName") || "";
+    const gender = sessionStorage.getItem("profileGender") || "";
+    const birthDate = sessionStorage.getItem("profileBirthDate") || "";
 
+    if (!email || !password || !displayName || !gender || !birthDate) {
+      setError("Сесія реєстрації завершилась. Почніть реєстрацію ще раз.")
+      return
+    }
+
+    setError("")
     try {
       const response = await fetch(`${API}/api/auth/register/`, {
         method: "POST",
@@ -996,19 +1417,34 @@ function Agreement() {
           email,
           username: email,
           password,
-          password_confirm: password
+          password_confirm: password,
+          display_name: displayName,
+          birth_date: birthDate,
+          gender: {
+            Male: "male",
+            Female: "female",
+            "Prefer not to say": "not_specified",
+          }[gender],
         })
       });
 
       if (response.ok) {
-        navigate("/login");
+        const data = await response.json()
+        sessionStorage.removeItem("signupEmail")
+        sessionStorage.removeItem("signupPassword")
+        sessionStorage.removeItem("profileName")
+        sessionStorage.removeItem("profileGender")
+        sessionStorage.removeItem("profileBirthDate")
+        localStorage.setItem("sonik_access_token", data.access)
+        localStorage.setItem("sonik_refresh_token", data.refresh)
+        navigate("/account");
         return;
       }
 
       const data = await response.json();
-      setError(JSON.stringify(data));
+      setError(getErrorMessage(data));
     } catch {
-      setError("Backend is not running.");
+      setError("Не вдалося зв’язатися з бекендом. Перевірте, що сервер запущено на http://127.0.0.1:8000 і оновіть сторінку.");
     }
   }
 

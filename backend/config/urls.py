@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
-from users.views import RegisterView
+from users.views import GoogleLoginView, RegisterView
 
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -19,6 +19,11 @@ urlpatterns = [
     RegisterView.as_view(),
     name="register",
 ),
+    path(
+        "api/auth/google/",
+        GoogleLoginView.as_view(),
+        name="google_login",
+    ),
     path(
         "api/auth/token/",
         TokenObtainPairView.as_view(),
