@@ -1,0 +1,120 @@
+.suggested-users {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 50px 48px 70px;
+  background: #111111;
+  color: #ffffff;
+}
+
+.suggested-users-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 28px;
+}
+
+.suggested-users-header h2 {
+  margin: 0;
+  font-size: 32px;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.suggested-users-header p {
+  margin: 9px 0 0;
+  color: #999999;
+  font-size: 15px;
+}
+
+.suggested-see-all {
+  border: 0;
+  background: transparent;
+  color: #ffe329;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.suggested-users-row {
+  display: flex;
+  gap: 28px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+}
+
+.suggested-user-card {
+  flex: 0 0 250px;
+  box-sizing: border-box;
+}
+
+.suggested-user-image {
+  display: block;
+  width: 210px;
+  height: 210px;
+  object-fit: cover;
+  border-radius: 50%;
+  margin-bottom: 18px;
+}
+
+.suggested-user-card h3 {
+  margin: 0;
+  font-size: 19px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggested-username {
+  margin-top: 5px;
+  color: #999999;
+  font-size: 14px;
+}
+
+.suggested-followers {
+  margin-top: 9px;
+  color: #b8b8b8;
+  font-size: 14px;
+}
+
+.suggested-follow-button {
+  margin-top: 15px;
+  min-width: 110px;
+  padding: 10px 20px;
+  border: 1px solid #ffffff;
+  border-radius: 999px;
+  background: transparent;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.suggested-follow-button:hover {
+  background: #ffffff;
+  color: #111111;
+}
+
+.suggested-follow-button.following {
+  background: #ffe329;
+  border-color: #ffe329;
+  color: #111111;
+}
+
+@media (max-width: 700px) {
+  .suggested-users {
+    padding: 40px 22px 55px;
+  }
+
+  .suggested-users-header h2 {
+    font-size: 26px;
+  }
+
+  .suggested-user-card {
+    flex-basis: 190px;
+  }
+
+  .suggested-user-image {
+    width: 165px;
+    height: 165px;
+  }
+}
