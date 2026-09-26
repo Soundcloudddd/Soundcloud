@@ -1,5 +1,6 @@
 import { useState } from "react";
 import ProfilePage from "./pages/Profile";
+import SuggestedUsers from "./pages/SuggestedUsers";
 import EditProfile from "./pages/EditProfile";
 import Home from "./Home";
 import {
@@ -674,12 +675,16 @@ function Account() {
 
 function HomeWithProfile() {
   return (
-    <div className="home-wrapper">
-      <Home />
-      <Link className="home-profile-button" to="/profile">
-        Profile
-      </Link>
-    </div>
+    <>
+      <div className="home-wrapper">
+        <Home />
+        <Link className="home-profile-button" to="/profile">
+          Profile
+        </Link>
+      </div>
+
+      <SuggestedUsers />
+    </>
   );
 }
 
