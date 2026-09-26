@@ -550,8 +550,8 @@
 .player-bar .controls button { margin-right: 8px; padding: 8px 12px; }
 .player-bar .now { flex: 1 1 auto; margin-left: 20px; text-align: left; }
 .player-bar .progress-container { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
-.player-bar .progress { flex: 1; height: 6px; background: var(--border); border-radius: 6px; overflow: hidden; }
-.player-bar .progress .bar { width: 0%; height: 100%; background: #ff7700; }
+.player-bar .progress { flex: 1; height: 6px; background: #245c70; border-radius: 6px; overflow: hidden; }
+.player-bar .progress .bar { width: 0%; height: 100%; background: #00d4be; }
 .player-bar .skip-buttons { display: flex; gap: 6px; }
 .player-bar .skip-btn { background: #ff7700; color: #fff; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; }
 .player-bar .skip-btn:hover { background: #ff9933; }
@@ -831,7 +831,7 @@ h1::before, h2::before, .tracks::before {
 
 /* waveform placeholder */
 .track-wave {
-  height: 28px; background: linear-gradient(90deg, rgba(255,119,0,0.12), rgba(255,119,0,0.04)); border-radius: 4px; flex: 1 1 auto; margin-left: 12px;
+  height: 28px; background: linear-gradient(90deg, rgba(0,212,190,0.22), rgba(0,212,190,0.06)); border-radius: 4px; flex: 1 1 auto; margin-left: 12px;
 }
 
 .now-title { font-weight: 600; }
@@ -930,7 +930,7 @@ h1::before, h2::before, .tracks::before {
 .player-bar .progress .bar {
   width: 0%;
   height: 100%;
-  background: #ff7700;
+  background: #00d4be;
   transition: width 0.1s linear;
 }
 

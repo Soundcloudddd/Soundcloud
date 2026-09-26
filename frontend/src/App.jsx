@@ -461,7 +461,7 @@ function Home() {
           onClick={() => setActiveTab('home')}
           aria-label="Go to home page"
         >
-          Sound<span>Cloud</span>
+          Sonic
         </button>
         <form className="search" onSubmit={handleSearch}>
           <input
@@ -1052,6 +1052,9 @@ function Home() {
             {currentTrack ? `${currentTrack.artist} — ${currentTrack.title}` : 'No track playing'}
           </div>
           <div className="progress-container">
+            <div className="progress" aria-label="Track progress">
+              <div className="bar" style={{ width: `${progress}%` }} />
+            </div>
             <div className="skip-buttons">
               <button type="button" className="skip-btn" onClick={handleSkipBackward5} title="Назад на 5 секунд">⏪ −5 с</button>
               <button type="button" className="skip-btn" onClick={handleSkipForward5} title="Вперед на 5 секунд">+5 с ⏩</button>
